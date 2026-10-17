@@ -1,0 +1,52 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+export function Navbar() {
+  const pathname = usePathname();
+  // 归一化：去掉末尾 '/' 再比较，兼容路由两种情况
+  const normalized = pathname?.replace(/\/+$/, '') ?? '';
+  const [activeTab, setActiveTab] = useState<'demo' | 'portfolio'>(
+    normalized === '/portfolio' ? 'portfolio' : 'demo'
+  );
+
+  return (
+    <nav className="sticky top-0 z-50 w-full border-b border-[#E5E5E5] bg-white">
+      <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4">
+        <Link href="/" className="flex items-center gap-2">
+          <img src="https://demovideo.tos-cn-shanghai.volces.com/site-media/logo.jpg" alt="KangAigc" className="h-8 w-8 rounded-full object-cover" />
+          <div className="flex flex-col leading-tight">
+            <span className="text-base font-bold text-[#1A1A1A]">Wenkang Xu</span>
+            <span className="text-xs text-[#666666]">kangAIGC</span>
+          </div>
+        </Link>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/"
+            onClick={() => setActiveTab('demo')}
+            className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'demo'
+                ? 'bg-[#333333] text-white'
+                : 'text-[#666666] hover:bg-[#F5F5F5] hover:text-[#1A1A1A]'
+            }`}
+          >
+            原型设计
+          </Link>
+          <Link
+            href="/portfolio"
+            onClick={() => setActiveTab('portfolio')}
+            className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'portfolio'
+                ? 'bg-[#333333] text-white'
+                : 'text-[#666666] hover:bg-[#F5F5F5] hover:text-[#1A1A1A]'
+            }`}
+          >
+            Aigc作品
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
+}

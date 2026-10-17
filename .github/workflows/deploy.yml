@@ -1,0 +1,74 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# GITHUB_TOKEN 写入 Pages、生成 oidc
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时刻只跑一条部署
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 用 Node 内置 corepack 管理 pnpm（读取 package.json 的 packageManager 字段）
+      - name: Enable pnpm via corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build static export
+        run: pnpm next build
+        env:
+          # 部署在 https://<user>.github.io/<repo>/ 子路径下
+          NEXT_PUBLIC_BASE_PATH: /Home
+
+      # GitHub Pages 只在 URL 带 trailing slash 时匹配 <route>/index.html；
+      # 用户手动输入 /prd（无/）会直接 404。这里复制一份 <route>.html 单文件兜底。
+      - name: Create non-trailing-slash HTML fallbacks
+        working-directory: out
+        run: |
+          shopt -s nullglob
+          for dir in */; do
+            name="${dir%/}"
+            # 跳过 Next.js 内部目录和资源目录
+            case "$name" in
+              _next|assets|images|favicon.ico|404) continue ;;
+            esac
+            if [ -f "$name/index.html" ]; then
+              cp "$name/index.html" "$name.html"
+              echo "Fallback: $name/index.html → $name.html"
+            fi
+          done
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
